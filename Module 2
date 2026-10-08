@@ -1,0 +1,68 @@
+Module 2 turns a Slack-summary skill into something you can measure and improve. An eval is a repeatable pass/fail check on one observable quality. You name that quality, write a rubric, train an LLM judge until it votes the way you do, then use that judge to make small skill changes on the same input.
+
+The loop
+Run the skill about ten times and read the outputs.
+Pick one pattern you want to fix. That is a criterion.
+Label each example pass or fail yourself, with a reason.
+Turn those labels into a rubric: written instructions that encode your taste.
+Give the rubric and one output to a separate LLM, the judge.
+Calibrate until you and the judge agree.
+Hill-climb: when you both agree an output fails, change the skill a little, replay it on the same input, and check again.
+Criterion, then labels, then rubric
+A criterion is one quality you can see in the output or in how the skill ran. The running example is whether a Slack update stands alone. A useful update names the decision, the options, and why one was chosen. An update that forces you back into Slack to figure out what it means fails.
+
+Other patterns he notices: emphasis on the wrong things, repetition, and updates that contradict each other. You start with one criterion. A real product has many.
+
+Labels have to be pass or fail on something you can point at. A 1–10 “quality” score fails because the model does not know what a 10 means. If you can explain the verdict from the text, you can later teach a model to make the same call.
+
+The rubric is that explanation, written so another reader would judge the way you do. Scope matters. Customer impact is separate from a weak next action. His rubric applies to individual updates inside a summary, not the summary as a whole. It tells the judge to use only the rubric and that one update.
+
+The judge is just an LLM with a clean context
+A judge is not special software. It is an LLM that receives the rubric and one output and returns a verdict: pass or fail, and why.
+
+It has to run as its own agent. If it could see the conversation, it would already know your labels and would cheat. In the recording, each judge gets two files only: the rubric and one example. No history, no other votes, no skill file.
+
+Calibration is the hard part
+You and the judge will disagree at first, usually because the rubric is vague. You iterate the rubric until the verdicts match. That set of labeled outputs is the calibration set.
+
+Concrete disagreements from the videos:
+
+License management. He failed an update because it never said what license management is or why a late delivery hurts the customer. App Shop install with no statement of work was clear; the product was not. He first thought the judge was right under a narrow rubric, then tightened the rubric so “installing” is not itself the customer’s goal.
+Agent abstraction. He passed an update from memory of a Brandon and Dhruv thread. Under the new rule it failed, because it never said what the choice means for a customer. He changed his own label to fail.
+Incidents. “Something timed out” was not enough. He wanted how many customers, which ones, how long, and what failed to happen.
+Sandboxes. “Two external developers” plus “payroll and T&A” was still a fail. He wanted names and the specific thing they are trying to build. A count plus a generic role is not identification.
+Service accounts. Naming a safeguard is not a customer consequence. The update has to say what customers can or cannot do.
+Each rubric edit can break a case you already agreed on, so he reruns the whole calibration with fresh judges. He treats 8/10 as not done, keeps going through 9/10, and stops when they match 10/10, later 13/13 after new failures are added to the set.
+
+Sometimes he changes his mind and the judge was right. Sometimes the rubric is wrong and the judge is faithfully applying a bad rule. Both are normal. The point of the loop is to pull tacit judgment out of your head into text.
+
+What this module deliberately skips
+This is foundational, not a production eval system. Module 3 and later Rippling AI work get stricter.
+
+In production you keep three piles:
+
+Calibration set: outputs used to tune the rubric.
+Development set: new outputs used to change the skill.
+Test set: outputs the judge never sees and you never use to edit the skill, so you can tell whether the judge generalized.
+Here, every disagreement gets folded back into the calibration set. The rubric is fitted to those examples. He says outright that ten new updates could expose a missing rule and send you back into calibration. Ten is a teaching number, not a scientific sample size. At products like Instinct or Muse, this is thousands of traces and many people labeling.
+
+He also does not read the source Slack while grading. Faithfulness to the input would require that, and it is much more work. The judge could take that extra context later. Almost nothing else in the loop would change.
+
+Replay, then hill climbing
+Once you both agree an output fails, you change the skill as little as possible and replay it on the same saved input. New Slack would confound the result: you would not know whether the edit worked or the messages changed. The new run is fresh output.
+
+If the replay still fails and you just made that change, revert it and try a smaller or more precise edit. If you and the judge agree it passes, keep it. He later drops the “three passes in a row” bar for this module: one agreed improvement is enough to proceed, then you keep looking for the next failure mode.
+
+The skill change often mirrors the rubric. For a small customer cohort, “two builders” is not enough; name them and their goal. He also rejects a bad edit that would drop any update with no customer mention. The rule he wants is: anchor the update on the customer, go look up missing impact, and if it is not in Slack, say so. Do not invent it.
+
+That last constraint collides with saved Slack. Customer names were not in the saved input, so a stricter skill could not pass until he allowed a fresh Slack search. The second run still could not name them, but it could say it looked and did not find them. He calls that a pass. If the judge failed it, the judge would be wrong unless the rubric already allowed “not in the source” as a valid substitute.
+
+The agent will drift
+Long sessions compact the context window. The model is stateless; after compaction it can lose the flowchart. Twice the agent tries to edit the skill when the right move is a fresh run after a judge disagreement. He makes it reread the readme and restate where it deviated. The takeaway he states directly: you still have to know the flow well enough to stop it.
+
+Why the work is worth it
+Hand-editing one summary would be faster for a single bad update. It would not travel. A calibrated judge can re-check the skill when the model changes (he cites switching Rippling AI from Opus 4.6 to GPT 5.5), when tools change, or when someone else’s prompt change causes a quiet regression. Module 3 is the same loop unattended: run the skill, run the judge, edit on failure, repeat overnight.
+
+Criteria also fight each other. Wanting both “what the customer is building” and “blast radius” can overfit one example. You will not pass every criterion every time. You pick a bar, such as a pass rate, instead of perfection.
+
+Cost shows up early. He spent about $40 before the token-heavy part and warns against running the whole module on the most expensive model setting.
